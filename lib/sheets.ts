@@ -130,8 +130,8 @@ export function getGoogleSheetUrl(): string | null {
 }
 
 /**
- * Fetch skills from Google Sheets with ISR caching (revalidates every 60s).
- * Falls back to static skills if sheet is not configured or fetch fails.
+ * Fetch skills from Google Sheets in real-time (bypasses Google and Next.js caching).
+ * Falls back to empty list if sheet is not configured or fetch fails.
  */
 export async function getSkills(): Promise<{ skills: Skill[]; isLive: boolean }> {
   const sheetUrl = getGoogleSheetUrl();
@@ -141,8 +141,11 @@ export async function getSkills(): Promise<{ skills: Skill[]; isLive: boolean }>
   }
 
   try {
-    const res = await fetch(sheetUrl, {
-      next: { revalidate: 60 }, // Revalidate every 60 seconds
+    const separator = sheetUrl.includes("?") ? "&" : "?";
+    const cacheBustedUrl = `${sheetUrl}${separator}_t=${Date.now()}`;
+
+    const res = await fetch(cacheBustedUrl, {
+      cache: "no-store",
     });
 
     if (!res.ok) {

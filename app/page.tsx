@@ -2,8 +2,9 @@ import SkillsExplorer from "@/components/SkillsExplorer";
 import { getSkills, getCategories } from "@/lib/sheets";
 import Image from "next/image";
 
-// Revalidate Google Sheet data every 60 seconds (Next.js ISR)
-export const revalidate = 60;
+// Dynamic page rendering to ensure fresh Google Sheet data
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function Home() {
   const { skills, isLive } = await getSkills();
@@ -61,9 +62,6 @@ export default async function Home() {
             <div className="flex items-center gap-2">
               <span className="font-display text-lg font-semibold tracking-tight text-ink sm:text-xl">
                 Free <span className="italic font-normal text-clay-dark">Skills</span> Collection
-              </span>
-              <span className="rounded-full border border-moss/30 bg-moss/10 px-2.5 py-0.5 text-[10px] font-medium text-moss">
-                Open Source
               </span>
             </div>
 
@@ -124,7 +122,7 @@ export default async function Home() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink">
               Community & Feedback
             </h3>
-            <p className="max-w-sm text-xs leading-relaxed text-ink-soft">
+            <p className="max-w-md text-xs leading-relaxed text-ink-soft">
               Found an issue or want to report a broken link? Click the flag icon on any skill card to notify us directly.
             </p>
             <div className="pt-1">

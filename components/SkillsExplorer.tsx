@@ -24,8 +24,81 @@ export default function SkillsExplorer({
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [selectedReportSkill, setSelectedReportSkill] = useState<Skill | null>(null);
 
-  const skillsList = initialSkills || [];
-  const categoriesList = initialCategories && initialCategories.length > 0 ? initialCategories : fallbackCategories;
+  // Real-time state
+  const [skillsList, setSkillsList] = useState<Skill[]>(initialSkills || []);
+  const [categoriesList, setCategoriesList] = useState<Category[]>(
+    initialCategories && initialCategories.length > 0 ? initialCategories : fallbackCategories
+  );
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hasLiveSource, setHasLiveSource] = useState(isLive);
+
+  // Keep state updated if server props change
+  useEffect(() => {
+    if (initialSkills && initialSkills.length > 0) {
+      setSkillsList(initialSkills);
+    }
+  }, [initialSkills]);
+
+  useEffect(() => {
+    if (initialCategories && initialCategories.length > 0) {
+      setCategoriesList(initialCategories);
+    }
+  }, [initialCategories]);
+
+  // Real-time fetch function to pull fresh data from Google Sheet
+  const fetchLatestSkills = async (showLoadingState = false) => {
+    if (showLoadingState) setIsSyncing(true);
+    try {
+      const res = await fetch(`/api/skills?_t=${Date.now()}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && Array.isArray(data.skills)) {
+        setSkillsList(data.skills);
+        if (data.categories && Array.isArray(data.categories)) {
+          setCategoriesList(data.categories);
+        }
+        if (typeof data.isLive === "boolean") {
+          setHasLiveSource(data.isLive);
+        }
+      }
+    } catch (err) {
+      console.warn("[SkillsExplorer] Real-time sync error:", err);
+    } finally {
+      if (showLoadingState) setIsSyncing(false);
+    }
+  };
+
+  // Periodic polling & Tab-focus revalidation for realtime updates
+  useEffect(() => {
+    // 1. Initial background fetch to verify freshness immediately
+    fetchLatestSkills();
+
+    // 2. Poll every 15 seconds in background
+    const interval = setInterval(() => {
+      fetchLatestSkills();
+    }, 15000);
+
+    // 3. Immediately sync when user returns to this browser tab
+    const handleFocus = () => {
+      fetchLatestSkills();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchLatestSkills();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   // Filter skills based on category and search query
   const filtered = useMemo(() => {
@@ -71,7 +144,7 @@ export default function SkillsExplorer({
 
   return (
     <div id="skills-section">
-      {/* Controls: Category Dropdown, Search Input & Report Issue Button */}
+      {/* Controls: Category Dropdown, Search Input & Live Sync Button */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Category Dropdown & Reset */}
         <div className="flex items-center gap-2 flex-wrap">
