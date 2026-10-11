@@ -118,8 +118,9 @@ export function getGoogleSheetUrl(): string | null {
     return directUrl.trim();
   }
 
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  const sheetGid = process.env.DATA_GID || "0";
+  // Default fallback ID & GID so the site works seamlessly on Vercel even before env variables are set
+  const sheetId = process.env.GOOGLE_SHEET_ID || "1BQmhRnONTSxaUolgasRJ6PcuXsHbF4wwdept6pO66_M";
+  const sheetGid = process.env.DATA_GID || process.env.GOOGLE_SHEET_GID || "19840307";
 
   if (sheetId && sheetId.trim()) {
     // Google Sheets GViz CSV export endpoint
